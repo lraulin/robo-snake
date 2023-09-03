@@ -1,0 +1,6 @@
+{
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "terminal.integrated.shellArgs.windows": "venv\\Scripts\\Activate.ps1"
+}
