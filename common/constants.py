@@ -1,0 +1,8 @@
+# Description: Constants used throughout the application
+DB_FILE_NAME = "db/tiller.db"
+DIRECT_EXPRESS_SHEET = "DirectExpress"
+DIRECT_EXPRESS_TABLE = "direct_express"
+DIRECT_EXPRESS_PENDING = "Pending"
+DIRECT_EXPRESS_HEADERS = (
+    "DATE,TRANSACTION ID,DESCRIPTION,AMOUNT,TRANSACTION TYPE,CITY,STATE,COUNTRY"
+)

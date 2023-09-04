@@ -1,7 +1,7 @@
-from auth import get_creds
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from secret import TILLER_SPREADSHEET_ID
+from sheets.auth import get_creds
+from sheets.secret import TILLER_SPREADSHEET_ID
 
 
 def get_sheet(sheet_name: str) -> list[list]:

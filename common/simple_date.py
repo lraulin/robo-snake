@@ -15,4 +15,4 @@ class SimpleDate:
         return f"{self.year}-{self.month:02d}-{self.day:02d}"
 
     def to_us_standard(self):
-        return f"{self.month:02d}/{self.day:02d}/{self.year}"
+        return f"{self.month:d}/{self.day:d}/{self.year}"
