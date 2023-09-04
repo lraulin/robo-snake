@@ -1,5 +1,13 @@
 import sqlite3
+from pypika import Query, Table, Field
 from common.constants import DB_FILE_NAME
+
+TBL_CATEGORY = "category"
+TBL_DIRECT_EXPRESS = "direct_express"
+TBL_DIRECT_EXPRESS_CHANGE_LOG = "direct_express_change_log"
+TBL_GROUP = "group"
+EVERYTHING = "*"
+HIDE = "Hide"
 
 
 def get_cursor_and_con(db_name):
@@ -69,3 +77,72 @@ def upsert(table_name: str, records: list[tuple]) -> None:
     cursor.close()
     con.close()
     print(f"Successfully upserted {len(records)} records into {table_name}")
+
+
+def insert_categories():
+    csv = """Phone,Bills,Expense,
+Utilities,Bills,Expense,
+Amazon,Discretionary,Expense,
+Big Toys,Discretionary,Expense,
+Books,Discretionary,Expense,
+Entertainment,Discretionary,Expense,
+Games,Discretionary,Expense,
+Home Improvements,Discretionary,Expense,
+Meds & Suppliments,Discretionary,Expense,
+Restaurants,Discretionary,Expense,
+Subscriptions,Discretionary,Expense,
+Classes,Kids,Expense,
+Stuff,Kids,Expense,
+Auto & Gas,Living,Expense,
+Charity,Living,Expense,
+Fees,Living,Expense,
+Groceries,Living,Expense,
+Healthcare,Living,Expense,
+Misc,Living,Expense,
+Mortgage,Living,Expense,
+Repairs,Living,Expense,
+Travel,Living,Expense,
+Parking,Work,Expense,
+Reimbursable,Work,Expense,Hide
+Earned Interest,Income,Income,
+Other Income,Income,Income,
+Paycheck,Income,Income,
+Tax Refund,Income,Income,
+VA Benefits,Income,Income,
+Transfer,Transfer Types,Transfer,Hide"""
+    records = [tuple(line.split(",")) for line in csv.split("\n")]
+    print(records)
+    q = Query.from_(TBL_GROUP).select(EVERYTHING)
+    sql = q.get_sql()
+    print(sql)
+    cur, con = get_cursor_and_con(DB_FILE_NAME)
+    result = cur.execute(sql)
+    group_dict = {
+        group: {"id": id, "type": type} for id, group, type in result.fetchall()
+    }
+    print(group_dict)
+
+    category_records = [
+        (
+            index + 1,
+            category,
+            group_dict[group]["id"],
+            1 if hidden == HIDE else 0,
+        )
+        for index, (category, group, _, hidden) in enumerate(records)
+    ]
+    print(category_records)
+    insert_q = Query.into(TBL_CATEGORY).insert(*category_records)
+    print("SQL:")
+    insert_sql = insert_q.get_sql()
+    print(insert_sql)
+    try:
+        pass
+        cur.execute(insert_sql)
+        con.commit()
+    except sqlite3.Error as error:
+        print("Error occurred - ", error)
+
+    finally:
+        cur.close()
+        con.close()
