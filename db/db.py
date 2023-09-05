@@ -1,5 +1,5 @@
 import sqlite3
-from pypika import Query, Table, Field
+from pypika import Query, functions as fn
 from common.constants import DB_FILE_NAME
 
 TBL_CATEGORY = "category"
@@ -10,10 +10,19 @@ EVERYTHING = "*"
 HIDE = "Hide"
 
 
-def get_cursor_and_con(db_name):
-    con = sqlite3.connect(db_name)
-    cursor = con.cursor()
-    return cursor, con
+class InvalidQueryException(Exception):
+    pass
+
+
+def open_db(db_name):
+    connection = sqlite3.connect(db_name)
+    cursor = connection.cursor()
+    return connection, cursor
+
+
+def close_db(connection, cursor):
+    cursor.close()
+    connection.close()
 
 
 def get_table_info(cursor, table_name):
@@ -36,7 +45,7 @@ def get_operation_counts(table_name, cursor):
 
 
 def upsert(table_name: str, records: list[tuple]) -> None:
-    cursor, con = get_cursor_and_con(DB_FILE_NAME)
+    con, cursor = open_db(DB_FILE_NAME)
     initial_inserted, initial_updated = get_operation_counts(table_name, cursor)
     col_names, primary_key = get_table_info(cursor, table_name)
 
@@ -79,70 +88,50 @@ def upsert(table_name: str, records: list[tuple]) -> None:
     print(f"Successfully upserted {len(records)} records into {table_name}")
 
 
-def insert_categories():
-    csv = """Phone,Bills,Expense,
-Utilities,Bills,Expense,
-Amazon,Discretionary,Expense,
-Big Toys,Discretionary,Expense,
-Books,Discretionary,Expense,
-Entertainment,Discretionary,Expense,
-Games,Discretionary,Expense,
-Home Improvements,Discretionary,Expense,
-Meds & Suppliments,Discretionary,Expense,
-Restaurants,Discretionary,Expense,
-Subscriptions,Discretionary,Expense,
-Classes,Kids,Expense,
-Stuff,Kids,Expense,
-Auto & Gas,Living,Expense,
-Charity,Living,Expense,
-Fees,Living,Expense,
-Groceries,Living,Expense,
-Healthcare,Living,Expense,
-Misc,Living,Expense,
-Mortgage,Living,Expense,
-Repairs,Living,Expense,
-Travel,Living,Expense,
-Parking,Work,Expense,
-Reimbursable,Work,Expense,Hide
-Earned Interest,Income,Income,
-Other Income,Income,Income,
-Paycheck,Income,Income,
-Tax Refund,Income,Income,
-VA Benefits,Income,Income,
-Transfer,Transfer Types,Transfer,Hide"""
-    records = [tuple(line.split(",")) for line in csv.split("\n")]
-    print(records)
-    q = Query.from_(TBL_GROUP).select(EVERYTHING)
-    sql = q.get_sql()
-    print(sql)
-    cur, con = get_cursor_and_con(DB_FILE_NAME)
-    result = cur.execute(sql)
-    group_dict = {
-        group: {"id": id, "type": type} for id, group, type in result.fetchall()
-    }
-    print(group_dict)
+def db_read(query: Query) -> list:
+    sql = query.get_sql()
+    if not sql.strip().upper().startswith("SELECT"):
+        raise InvalidQueryException("Provided query is not a SELECT query.")
 
-    category_records = [
-        (
-            index + 1,
-            category,
-            group_dict[group]["id"],
-            1 if hidden == HIDE else 0,
-        )
-        for index, (category, group, _, hidden) in enumerate(records)
-    ]
-    print(category_records)
-    insert_q = Query.into(TBL_CATEGORY).insert(*category_records)
-    print("SQL:")
-    insert_sql = insert_q.get_sql()
-    print(insert_sql)
     try:
-        pass
-        cur.execute(insert_sql)
-        con.commit()
-    except sqlite3.Error as error:
-        print("Error occurred - ", error)
-
+        con, cursor = open_db(DB_FILE_NAME)
+        cursor.execute(query.get_sql())
+        results = cursor.fetchall()
+        return results
+    except Exception as e:
+        print(e)
+        raise e
     finally:
-        cur.close()
-        con.close()
+        close_db(con, cursor)
+
+
+def db_write(query: Query) -> None:
+    sql = query.get_sql()
+    if not (
+        sql.strip().upper().startswith("INSERT")
+        or sql.strip().upper().startswith("UPDATE")
+        or sql.strip().upper().startswith("DELETE")
+    ):
+        raise InvalidQueryException(
+            "Provided query is not a valid write query (INSERT, UPDATE, DELETE)."
+        )
+
+    try:
+        con, cursor = open_db(DB_FILE_NAME)
+        cursor.execute(query.get_sql())
+        con.commit()
+        print("Successfully executed query.")
+    except Exception as e:
+        print(e)
+        raise e
+    finally:
+        close_db(con, cursor)
+
+
+def column_max(table, column) -> int:
+    q = Query.from_(table).select(fn.Max(table[column]))
+    result = db_read(q)
+    try:
+        return result[0][0]
+    except IndexError:
+        return 0

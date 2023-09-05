@@ -1,12 +1,14 @@
-from datetime import datetime
+from ctypes import get_last_error
 import glob
 import os
-from db.db import upsert
+from direct_express.de_db import (
+    de_upsert,
+)
 from direct_express.dto import DirectExpressTransaction
 from common.util import get_text_from_file
 
 
-def get_latest_import() -> str:
+def _get_latest_import() -> str:
     list_of_files = glob.glob(r"C:\Users\leera\Downloads\*.csv")
     direct_express_files = [
         filename for filename in list_of_files if "DirectExpress-" in filename
@@ -20,7 +22,7 @@ def get_latest_import() -> str:
     return get_text_from_file(latest_file), created_time
 
 
-def csv_to_dtos(csv: str, imported_time: int) -> list[DirectExpressTransaction]:
+def _csv_to_dtos(csv: str, imported_time: int) -> list[DirectExpressTransaction]:
     lines = csv.split("\n")
     header = lines[3]
     if (
@@ -37,13 +39,13 @@ def csv_to_dtos(csv: str, imported_time: int) -> list[DirectExpressTransaction]:
     return dtos
 
 
-def load_csv_data():
-    csv, import_time = get_latest_import()
-    dtos = csv_to_dtos(csv, import_time)
+def _load_csv_data():
+    csv, import_time = _get_latest_import()
+    dtos = _csv_to_dtos(csv, import_time)
     return dtos
 
 
-def update_from_file():
-    dtos = load_csv_data()
-    records = [dto.to_sql() for dto in dtos]
-    upsert("direct_express", records)
+def import_csv():
+    print("Importing CSV...")
+    dtos = _load_csv_data()
+    de_upsert(dtos)
