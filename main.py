@@ -1,3 +1,4 @@
+from db.db import select_and_print_table
 from direct_express.de_db import show_transactions
 from direct_express.from_google import update_from_google_sheets
 
@@ -110,6 +111,8 @@ def show(args) -> None:
         n = args.number
         print(f"Showing {n} Direct Express transactions")
         show_transactions(n)
+    else:
+        select_and_print_table(args.table)
 
 
 def main():

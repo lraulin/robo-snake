@@ -1,6 +1,7 @@
 import sqlite3
-from pypika import Query, functions as fn
+from pypika import Query, Table, functions as fn
 from common.constants import DB_FILE_NAME
+from tabulate import tabulate
 
 TBL_CATEGORY = "category"
 TBL_DIRECT_EXPRESS = "direct_express"
@@ -135,3 +136,30 @@ def column_max(table, column) -> int:
         return result[0][0]
     except IndexError:
         return 0
+
+
+def select_and_print_table(table_name):
+    conn, cursor = open_db(DB_FILE_NAME)
+
+    # Initialize the Table object for pypika
+    tbl = Table(table_name)
+
+    # Construct the SQL query using pypika
+    q = Query.from_(tbl).select("*")
+    sql = q.get_sql()
+
+    try:
+        # Execute the SQL query and fetch all records
+        cursor.execute(sql)
+        records = cursor.fetchall()
+
+        # Fetch the column names from the cursor description
+        column_names = [desc[0].title() for desc in cursor.description]
+
+        # Use tabulate to print records as a table
+        print(tabulate(records, headers=column_names))
+
+    except sqlite3.Error as e:
+        print(f"Database error: {e}")
+    finally:
+        close_db(conn, cursor)
