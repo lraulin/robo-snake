@@ -1,6 +1,9 @@
+from common.simple_date import SimpleDate
+
+
 class Transaction:
     def __init__(self, **kwargs) -> None:
-        self.date = Date(kwargs.get("date"))
+        self.date = SimpleDate(kwargs.get("date"))
         self.description = kwargs.get("description")
         self.amount = kwargs.get("amount")
         self.transaction_type = kwargs.get("transaction_type")
