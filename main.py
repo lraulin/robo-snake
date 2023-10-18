@@ -2,6 +2,7 @@ import sys
 from db.db import select_and_print_table
 from direct_express.de_db import show_transactions
 from direct_express.from_google import update_from_google_sheets
+from gmail.quickstart import check
 
 
 import argparse
@@ -63,11 +64,6 @@ def parse_args() -> argparse.Namespace:
         "show", aliases=["s"], help="Print a table data"
     )
 
-       # Create a gmail subparser
-    parser_show = subparsers.add_parser(
-        "gmail", aliases=["m"], help="Get from gmail"
-    )
-
     # Add a required positional argument
     parser_show.add_argument("table", type=str, help="Required table argument.")
 
@@ -82,6 +78,11 @@ def parse_args() -> argparse.Namespace:
     # Add other optional flags
     parser_show.add_argument("-s", "--sort", help="Sort by column")
     parser_show.add_argument("-f", "--filter", help="Filter by condition")
+
+    # Create a gmail subparser
+    parser_show = subparsers.add_parser(
+        "gmail", aliases=["m"], help="Get from gmail"
+    )
     
     # Check if no arguments were provided
     if len(sys.argv) == 1:
@@ -146,6 +147,11 @@ def main():
     if command_is_show(args):
         show(args)
         return
+    
+    print("Hello...")
+
+    if args.command == "m":
+        check()
 
 
 if __name__ == "__main__":
